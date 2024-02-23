@@ -9,22 +9,24 @@ import os, sys
 import argparse
 
 
+
 def getQECalculator():
     pseudopotentials = {"H": "H.pbe-rrkjus_psl.1.0.0.UPF",
                         "Li": "Li.pbe-s-kjpaw_psl.1.0.0.UPF",
                         "Al": "Al.pbe-n-kjpaw_psl.1.0.0.UPF"
                        }
     # set env
-    espresso_profile = EspressoProfile(binary=f'srun pw.x'.split(),
+    espresso_profile = EspressoProfile(binary=f'mpirun -n {nprocs} pw.x'.split(),
                                        pseudo_dir=Path.home()/Path("qe_pseudopotentials/PBE_efficiency/"))
 
 
     input_data = {"control":   {'prefix': name,
                                 'calculation': calculation,
-                                "etot_conv_thr": 1.0e-7,
+                                "etot_conv_thr": 1.0e-8,
                                 "forc_conv_thr": 1.0e-4,
+                                "outdir": tmpdir,
                                 #  "outdir": "/tmp/" + name,
-                                "verbosity": 'high',
+                                #  "verbosity": 'high',
                                },
                   "system":    {'ibrav': 0,
                                 'nosym': True,
@@ -51,7 +53,7 @@ def getQECalculator():
 def runPh(name):
     input_ph = f"""
     &INPUTPH
-      outdir = './'
+      outdir = tmpdir
       prefix = '{name}'
       tr2_ph = 1d-14
       ldisp = .true.
@@ -66,7 +68,7 @@ def runPh(name):
     fl = open(f"ph.{name}.in", "w")
     print(input_ph, file=fl)
     fl.close()
-    os.system(f"srun ph.x -i ph.{name}.in > ph.{name}.out")
+    os.system(f"mpirun -n {nprocs} ph.x -i ph.{name}.in > ph.{name}.out")
 
 def runQ2r(name):
     input_q2r = f"""
@@ -80,7 +82,7 @@ def runQ2r(name):
     fl = open(f"q2r.{name}.in", "w")
     print(input_q2r, file=fl)
     fl.close()
-    os.system(f"srun q2r.x -i q2r.{name}.in > q2r.{name}.out")
+    os.system(f"mpirun -n {nprocs}  q2r.x -i q2r.{name}.in > q2r.{name}.out")
 
 def runMetadyn(name):
     input_metadyn = f"""
@@ -103,7 +105,7 @@ def runMetadyn(name):
     fl = open(f"metadyn.{name}.in", "w")
     print(input_metadyn, file=fl)
     fl.close()
-    os.system(f"srun metadyn.x -i metadyn.{name}.in > metadyn.{name}.out")
+    os.system(f"mpirun -n {nprocs} metadyn.x -i metadyn.{name}.in > metadyn.{name}.out")
 
 
 parser = argparse.ArgumentParser(description="Give something ...")
@@ -111,14 +113,17 @@ parser.add_argument("-calc_type", type=str, required=True)
 parser.add_argument("-geoms_path", type=str, required=True)
 parser.add_argument("-func", type=str, required=True)
 parser.add_argument("-idx", type=int, required=True)
-parser.add_argument("-memory", type=int, required=True)
+parser.add_argument("-nprocs", type=int, required=True)
+parser.add_argument("-tmpdir", type=str, required=True)
 args = parser.parse_args()
 
 
-idx = args.idx
+calc_type = args.calc_type
 geoms_path = args.geoms_path
 func = args.func.upper()
-calc_type = args.calc_type
+idx = args.idx
+nprocs = args.nprocs
+tmpdir = args.tmpdir
 atoms = read(geoms_path, index=idx)
 
 
@@ -136,17 +141,15 @@ if calc_type == "sp":
     calculation = 'scf'
 elif calc_type == "opt":
     calculation = 'vc-relax'
-elif calc_type == "freq_dfpt":
+elif calc_type == "freq":
     calculation = 'scf'
+elif calc_type == "opt_freq":
+    calculation = 'vc-relax'
 
 calc = getQECalculator()
 OUT_DIR = f"{keyword}_{calc_type}_{func}/{name}"
 
-if os.path.exists(OUT_DIR):
-
-    if  args.memory == 64:
-        if len(atoms) >= 20:
-            sys.exit(1)
+if not os.path.exists(OUT_DIR):
 
     # create outpur folders
     # easy create nested forder wether it is exists
@@ -159,14 +162,18 @@ if os.path.exists(OUT_DIR):
 
     atoms.calc = calc
     atoms.get_potential_energy()
+    if calc_type == "opt" or calc_type == "opt_freq":
+        print("Readiding optimized structure to start freq calculations")
+        atoms = read("espresso.pwo")
 
-    if calc_type == "freq_dfpt":
+    if calc_type == "freq" or calc_type == "opt_freq":
         runPh(name)
-        runQ2r(name)
-        runMetadyn(name)
+        #  runQ2r(name)
+        #  runMetadyn(name)
 
     os.chdir(cwd)
-    #  write(f"qe_{args.calc_type}_{keyword}.extxyz", atoms, append=True)
+    if calc_type == "opt" or calc_type == "opt_freq":
+        write(f"qe_{args.calc_type}_{keyword}.extxyz", atoms, append=True)
 else:
     print(f"{idx} calcultaion is alrady done")
 

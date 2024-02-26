@@ -22,8 +22,8 @@ def getQECalculator():
 
     input_data = {"control":   {'prefix': name,
                                 'calculation': calculation,
-                                "etot_conv_thr": 1.0e-8,
-                                "forc_conv_thr": 1.0e-4,
+                                "etot_conv_thr": 1.0e-7,
+                                "forc_conv_thr": 5.0e-4,
                                 "outdir": tmpdir,
                                 #  "outdir": "/tmp/" + name,
                                 #  "verbosity": 'high',
@@ -34,7 +34,7 @@ def getQECalculator():
                                 'ecutwfc': 110,
                                 'ecutrho': 600,
                                },
-                  "electrons": {'conv_thr': 1.0e-9,
+                  "electrons": {'conv_thr': 1.0e-8,
                                 'electron_maxstep': 200,
                                 'mixing_beta': 0.7,
                                }

@@ -165,6 +165,7 @@ if not os.path.exists(OUT_DIR):
     if calc_type == "opt" or calc_type == "opt_freq":
         print("Readiding optimized structure to start freq calculations")
         atoms = read("espresso.pwo")
+        atoms.info["label"] = name
 
     if calc_type == "freq" or calc_type == "opt_freq":
         runPh(name)

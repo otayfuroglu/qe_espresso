@@ -36,7 +36,7 @@ else:
     keyword = "test"
 
 
-keyword += "_24atoms_3x3x3"
+keyword = f"lowest_10_{keyword}_opt_freq_PBE"
 
 atoms_list = read(extxyz_path, index=":")
 
@@ -44,33 +44,20 @@ df_helmholtz = pd.DataFrame()
 temperature_list = range(0, 1001, 10)
 df_helmholtz["Temperature"] = temperature_list
 for i, atoms in enumerate(atoms_list):
-    #  name = atoms.info["label"]
-    name = "structure_0"
+    name = atoms.info["label"]
     potentialenergy = atoms.get_potential_energy()
     BASE_DIR = Path(f"{keyword}")
     print(name)
 
-    #  try:
-    ph_path = f"{BASE_DIR}/{name}/ph.{name}.out"
-    phout = read_espresso_ph(open(ph_path))
-    vib_energies = []
-    for i in phout.keys():
-        vib_energies += [phout[i]["freqs"] * THZ2EV]
-    #  for i in range(1, 15):
-    #      if i == 1:
-    #          vib_energies = np.array(phout[i]["freqs"])
-    #      else:
-    #          vib_energies += np.array(phout[i]["freqs"])
-
-    vib_energies = np.concatenate(vib_energies)
-        #  break
-    #  vib_energies *= THZ2EV
-    #  vib_energies = phout[3]["freqs"]
-    #  print(vib_energies * THZ2EV)
-    #  quit()
-        #  print(vib_energies)
-    #  except:
-        #  continue
+    try:
+        ph_path = f"{BASE_DIR}/{name}/ph.{name}.out"
+        phout = read_espresso_ph(open(ph_path))
+        vib_energies = []
+        for i in phout.keys():
+            vib_energies += [phout[i]["freqs"] * THZ2EV]
+        vib_energies = np.concatenate(vib_energies)
+    except:
+        continue
 
     #  quit()
 
@@ -90,10 +77,10 @@ for i, atoms in enumerate(atoms_list):
             #  temperature = 1
         helm_holtz_energy = free_energy_class.get_helmholtz_energy(temperature, verbose=True)
         helm_holtz_energies += [helm_holtz_energy / len(atoms)]
-    df_helmholtz[f"structure_{i}"] = helm_holtz_energies
+    df_helmholtz[name] = helm_holtz_energies
     #  df_gibbs[f"structure_{i}"] = gibbs
 
-#  df_helmholtz.to_csv(f"{BASE_DIR}/helmholtz_{keyword}.csv")
-df_helmholtz.to_csv(f"helmholtz_{keyword}.csv")
+df_helmholtz.to_csv(f"{BASE_DIR}/helmholtz_{keyword}.csv")
+#  df_helmholtz.to_csv(f"helmholtz_{keyword}.csv")
 #  df_gibbs.to_csv(f"gibbs_{keyword}.csv")
 

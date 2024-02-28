@@ -36,7 +36,7 @@ else:
     keyword = "test"
 
 
-keyword = f"lowest_10_{keyword}_opt_freq_PBE"
+#  keyword = f"lowest_10_{keyword}_opt_freq_PBE"
 
 atoms_list = read(extxyz_path, index=":")
 
@@ -61,7 +61,7 @@ for i, atoms in enumerate(atoms_list):
 
     #  quit()
 
-    #  vib_energies = [mode for mode in np.real(vib_energies) if mode > 1e-3]
+    vib_energies = [mode for mode in np.real(vib_energies) if mode > 1e-3]
     #  vib_energies = [complex(1.0e-8, 0) if energy < 1.0e-4 else energy for energy in vib_energies]
 
     #  print(vib_energies)
